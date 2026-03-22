@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Desk</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .chat-container { width: 400px; height: 600px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { background: #ff4757; color: white; padding: 20px; text-align: center; font-size: 1.2em; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px 15px; border-radius: 18px; max-width: 80%; line-height: 1.4; font-size: 0.95em; }
+        .message.user { align-self: flex-end; background: #ff4757; color: white; border-bottom-right-radius: 4px; }
+        .message.assistant { align-self: flex-start; background: #e1e1e1; color: #333; border-bottom-left-radius: 4px; }
+        .chat-input { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        .chat-input input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        .chat-input button { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 50%; cursor: pointer; transition: background 0.2s; }
+        .chat-input button:hover { background: #e04050; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">Restaurant Desk 🍕</div>
+    <div id="messages" class="chat-messages">
+        <div class="message assistant">Hello! I'm Pravin. How can I help you today?</div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">➔</button>
+    </div>
+</div>
+
+<script>
+    let sessionId = localStorage.getItem('sessionId') || null;
+
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        appendMessage('user', message);
+        input.value = '';
+
+        try {
+            const response = await fetch(`/api/v1/chat?message=${encodeURIComponent(message)}${sessionId ? `&session_id=${sessionId}` : ''}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.session_id) {
+                sessionId = data.session_id;
+                localStorage.setItem('sessionId', sessionId);
+            }
+
+            appendMessage('assistant', data.response);
+        } catch (error) {
+            console.error('Error:', error);
+            appendMessage('assistant', 'Sorry, something went wrong.');
+        }
+    }
+
+    function appendMessage(role, text) {
+        const messagesDiv = document.getElementById('messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}`;
+        msgDiv.innerText = text;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+</script>
+
+</body>
+</html>
